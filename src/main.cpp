@@ -9,8 +9,9 @@
 #include "sensor_fusion.h"
 
 // --- Pin and I2C config ---
-static constexpr int PIN_SDA = 4;
-static constexpr int PIN_SCL = 5;
+// XIAO ESP32-S3: silk "D4"=GPIO5 (SDA), silk "D5"=GPIO6 (SCL).
+static constexpr int PIN_SDA = 5;
+static constexpr int PIN_SCL = 6;
 static constexpr uint32_t I2C_FREQ = 400000;
 static constexpr uint8_t MPU_ADDR = 0x68;
 

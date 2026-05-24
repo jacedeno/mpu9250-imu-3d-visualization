@@ -7,7 +7,7 @@ ESP32-S3 (Seeed XIAO) + MPU-9250 IMU → real-time 3D orientation dashboard via 
 - **Board**: `seeed_xiao_esp32s3` (8MB flash, dual-core)
 - **Serial port**: `/dev/ttyACM0` (Espressif USB JTAG)
 - **WiFi AP**: SSID `NASA-Shuttle-IMU`, pass `12345678`, IP `192.168.4.1`
-- **I2C**: SDA=GPIO4, SCL=GPIO5, 400kHz, MPU addr `0x68`
+- **I2C**: SDA=GPIO5 (silk D4), SCL=GPIO6 (silk D5), 400kHz, MPU addr `0x68`
 - **Partition**: firmware ~830KB, LittleFS 1.5MB (currently ~615KB used with three.min.js)
 
 ## Build & Upload Commands
@@ -53,17 +53,16 @@ ser.close()
 - WiFi AP + WebSocket + dashboard: **WORKING**
 - Captive portal (DNS + connectivity endpoints): **WORKING** — stable on both phone and PC
 - Three.js served locally from LittleFS: **WORKING**
-- MPU-9250 I2C communication: **NOT WORKING** — `imu.begin()` returns -1, I2C scan finds no devices
+- MPU-9250 I2C communication: **FIX APPLIED, UNVERIFIED ON HW** — root cause was wrong pins (code drove GPIO4/5 = silk D3/D4 instead of the SDA/SCL pads GPIO5/6 = silk D4/D5). Firmware now uses GPIO5/6. Needs retest on hardware.
 - Firmware gracefully skips sensor task if MPU fails (no longer halts)
 - All dashboard values show 0 because no sensor data is being sent
 
 ## Pending / Next Steps
-1. **Fix MPU-9250 I2C wiring** — I2C scan finds nothing. Check:
-   - Physical connections (SDA→D4, SCL→D5, VCC→3.3V, GND→GND)
+1. **Retest MPU-9250 on hardware** — pin fix applied (now GPIO5/6 = silk D4/D5). Wire MPU SDA→D4, SCL→D5, VCC→3.3V, GND→GND. If scan still finds nothing, check:
    - Pull-up resistors on SDA/SCL (4.7kΩ to 3.3V if module lacks them)
    - AD0 pin state (GND=0x68, VCC=0x69)
    - Cable continuity with multimeter
-2. Once MPU works, sensor data should flow automatically through existing pipeline
+2. Once MPU is detected, sensor data should flow automatically through existing pipeline
 3. Optional: add simulated data mode for testing without hardware
 
 ## Important Notes
