@@ -64,13 +64,78 @@ scene.background = new THREE.Color(0x0a0a1a);
 const camera = new THREE.PerspectiveCamera(
     50, viewport.clientWidth / viewport.clientHeight, 0.1, 100
 );
-camera.position.set(4, 3, 5);
-camera.lookAt(0, 0, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(viewport.clientWidth, viewport.clientHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 viewport.appendChild(renderer.domElement);
+
+// --- Orbit camera: drag to rotate, wheel/pinch to zoom ---
+// Spherical coords around the shuttle (origin). Initial values match
+// the old fixed view at (4, 3, 5).
+const orbit = { radius: 7.1, theta: 0.675, phi: 1.13 };
+const ORBIT = { minR: 2.5, maxR: 25, minPhi: 0.05, maxPhi: Math.PI - 0.05 };
+
+function updateCamera() {
+    const r = orbit.radius, p = orbit.phi, t = orbit.theta;
+    camera.position.x = r * Math.sin(p) * Math.sin(t);
+    camera.position.y = r * Math.cos(p);
+    camera.position.z = r * Math.sin(p) * Math.cos(t);
+    camera.lookAt(0, 0, 0);
+}
+updateCamera();
+
+const orbitEl = renderer.domElement;
+let dragging = false, lastX = 0, lastY = 0, pinchDist = 0;
+
+function rotateBy(dx, dy) {
+    orbit.theta -= dx * 0.01;
+    orbit.phi = Math.max(ORBIT.minPhi, Math.min(ORBIT.maxPhi, orbit.phi - dy * 0.01));
+    updateCamera();
+}
+function zoomBy(amount) {
+    orbit.radius = Math.max(ORBIT.minR, Math.min(ORBIT.maxR, orbit.radius + amount));
+    updateCamera();
+}
+function touchDist(e) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+orbitEl.addEventListener('mousedown', function (e) {
+    dragging = true; lastX = e.clientX; lastY = e.clientY;
+});
+window.addEventListener('mouseup', function () { dragging = false; });
+window.addEventListener('mousemove', function (e) {
+    if (!dragging) return;
+    rotateBy(e.clientX - lastX, e.clientY - lastY);
+    lastX = e.clientX; lastY = e.clientY;
+});
+orbitEl.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    zoomBy(e.deltaY * 0.01);
+}, { passive: false });
+
+orbitEl.addEventListener('touchstart', function (e) {
+    if (e.touches.length === 1) {
+        dragging = true; lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+    } else if (e.touches.length === 2) {
+        dragging = false; pinchDist = touchDist(e);
+    }
+}, { passive: false });
+orbitEl.addEventListener('touchmove', function (e) {
+    e.preventDefault();
+    if (e.touches.length === 1 && dragging) {
+        rotateBy(e.touches[0].clientX - lastX, e.touches[0].clientY - lastY);
+        lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+    } else if (e.touches.length === 2) {
+        const d = touchDist(e);
+        zoomBy((pinchDist - d) * 0.03);
+        pinchDist = d;
+    }
+}, { passive: false });
+orbitEl.addEventListener('touchend', function () { dragging = false; });
 
 // Grid and axes
 scene.add(new THREE.GridHelper(10, 10, 0x333355, 0x1a1a3a));
