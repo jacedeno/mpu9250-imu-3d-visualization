@@ -8,7 +8,7 @@ ESP32-S3 (Seeed XIAO) + MPU-9250 IMU → real-time 3D orientation dashboard via 
 - **Serial port**: `/dev/ttyACM0` (Espressif USB JTAG)
 - **WiFi AP**: SSID `NASA-Shuttle-IMU`, pass `12345678`, IP `192.168.4.1`
 - **I2C**: SDA=GPIO5 (silk D4), SCL=GPIO6 (silk D5), 400kHz, MPU addr `0x68`
-- **Partition**: firmware ~830KB, LittleFS 1.5MB (currently ~615KB used with three.min.js)
+- **Partition**: firmware ~830KB, LittleFS 1.5MB (~160KB used; three.js stored gzipped)
 
 ## Build & Upload Commands
 ```bash
@@ -41,7 +41,7 @@ ser.close()
 - `data/index.html` — Dashboard HTML (loads Three.js locally)
 - `data/app.js` — Three.js scene, WebSocket client, rolling charts
 - `data/style.css` — Dark theme
-- `data/three.min.js` — Three.js r128 (served from LittleFS, NOT CDN)
+- `data/three.min.js.gz` — Three.js r128, gzipped (served from LittleFS, NOT CDN). HTML still requests `three.min.js`; the static handler serves the .gz with Content-Encoding: gzip. Keep ONLY the .gz — if both exist the handler serves the uncompressed one by default.
 - `platformio.ini` — Board config + dependencies
 
 ## Architecture
@@ -53,7 +53,9 @@ ser.close()
 - WiFi AP + WebSocket + dashboard: **WORKING**
 - Captive portal (DNS + connectivity endpoints): **WORKING** — stable on both phone and PC
 - Three.js served locally from LittleFS: **WORKING**
-- MPU-9250 I2C communication: **FIX APPLIED, UNVERIFIED ON HW** — root cause was wrong pins (code drove GPIO4/5 = silk D3/D4 instead of the SDA/SCL pads GPIO5/6 = silk D4/D5). Firmware now uses GPIO5/6. Needs retest on hardware.
+- MPU-9250 I2C communication: **WORKING (verified on HW 2026-05-24)** — root cause was wrong pins (code drove GPIO4/5 = silk D3/D4 instead of the SDA/SCL pads GPIO5/6 = silk D4/D5). Serial now shows `Device found at 0x68` + `[MPU] Init OK`.
+- three.min.js gzipped 603KB → 149KB to cut WiFi TX time (helps on marginal power supplies).
+- Known issue: on weak power (small powerbank / low LiPo) the board brownout-resets when serving the dashboard. Use a stable 5V source ≥1A. USB from laptop is fine.
 - Firmware gracefully skips sensor task if MPU fails (no longer halts)
 - All dashboard values show 0 because no sensor data is being sent
 
