@@ -41,7 +41,7 @@ static SemaphoreHandle_t dataMutex;
 
 // --- Hardware ---
 static MPU9250 imu(Wire, MPU_ADDR);
-static MadgwickFilter filter(0.1f, SENSOR_HZ);
+static MadgwickFilter filter(0.2f, SENSOR_HZ);
 
 // --- Network ---
 static DNSServer dnsServer;
@@ -121,6 +121,18 @@ void setup() {
         imu.setGyroRange(MPU9250::GYRO_RANGE_500DPS);
         imu.setDlpfBandwidth(MPU9250::DLPF_BANDWIDTH_92HZ);
         imu.setSrd(4); // 1000/(4+1) = 200 Hz
+
+        // Remove gyro bias so the model doesn't drift when stationary.
+        // Board MUST stay still during this (~2s).
+        Serial.println("[MPU] Calibrating gyro - keep board STILL...");
+        if (imu.calibrateGyro() > 0) {
+            Serial.printf("[MPU] Gyro calibrated (bias x=%.4f y=%.4f z=%.4f rad/s)\n",
+                          imu.getGyroBiasX_rads(), imu.getGyroBiasY_rads(),
+                          imu.getGyroBiasZ_rads());
+        } else {
+            Serial.println("[MPU] Gyro calibration FAILED (continuing without)");
+        }
+
         mpuReady = true;
     }
 
@@ -133,10 +145,14 @@ void setup() {
 
     // WiFi AP
     WiFi.mode(WIFI_AP);
-    WiFi.softAP(AP_SSID, AP_PASS);
+    bool apOk = WiFi.softAP(AP_SSID, AP_PASS, 1);
     delay(100);
-    Serial.printf("[WiFi] AP started: %s @ %s\n", AP_SSID,
-                  WiFi.softAPIP().toString().c_str());
+    WiFi.setTxPower(WIFI_POWER_19_5dBm);
+    Serial.printf("[WiFi] softAP() returned %s\n", apOk ? "true" : "false");
+    Serial.printf("[WiFi] AP started: %s @ %s (ch %d, MAC %s, txpwr %d)\n",
+                  AP_SSID, WiFi.softAPIP().toString().c_str(),
+                  WiFi.channel(), WiFi.softAPmacAddress().c_str(),
+                  WiFi.getTxPower());
 
     // Captive portal DNS: resolve all domains to our IP
     dnsServer.start(53, "*", WiFi.softAPIP());
@@ -202,8 +218,17 @@ void loop() {
     dnsServer.processNextRequest();
 
     static uint32_t lastWsBroadcast = 0;
+    static uint32_t lastHeartbeat = 0;
 
     uint32_t now = millis();
+
+    if (now - lastHeartbeat >= 2000) {
+        lastHeartbeat = now;
+        Serial.printf("[HB] up=%lus heap=%u stations=%u wsClients=%u APIP=%s\n",
+                      now / 1000, ESP.getFreeHeap(),
+                      WiFi.softAPgetStationNum(), ws.count(),
+                      WiFi.softAPIP().toString().c_str());
+    }
     if (now - lastWsBroadcast >= WS_PERIOD_MS) {
         lastWsBroadcast = now;
 
