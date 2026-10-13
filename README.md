@@ -1,8 +1,27 @@
-# XIAO-S3 NASA Shuttle Orientation Dashboard
+<h1 align="center">XIAO-S3 NASA Shuttle Orientation Dashboard</h1>
+<p align="center"><em>Real-time 3D IMU orientation dashboard: ESP32-S3 (Seeed XIAO) + MPU-9250 streamed over WebSocket and rendered with Three.js.<br>Madgwick sensor fusion, built with PlatformIO.</em></p>
 
-A high-performance IIoT visualization project utilizing the **Seeed Studio XIAO ESP32-S3** and the **MPU-9250** (9-DOF) sensor. This system provides real-time 3D orientation tracking (NASA Shuttle) in a web browser via WebSockets and Three.js.
+<p align="center">
+  <a href="#project-constants"><img src="https://img.shields.io/badge/sensor%20loop-200%20Hz-1f6feb?style=flat-square" alt="Sensor loop: 200 Hz"></a>
+  <a href="#project-constants"><img src="https://img.shields.io/badge/WebSocket%20push-60%20Hz-1f6feb?style=flat-square" alt="WebSocket push: 60 Hz"></a>
+  <a href="#performance-budget"><img src="https://img.shields.io/badge/RAM-13.5%25-2ea44f?style=flat-square" alt="RAM: 13.5%"></a>
+  <a href="#performance-budget"><img src="https://img.shields.io/badge/flash-24.5%25-2ea44f?style=flat-square" alt="Flash: 24.5%"></a>
+  <a href="#overview"><img src="https://img.shields.io/badge/fusion-Madgwick-8957e5?style=flat-square" alt="Fusion: Madgwick"></a>
+</p>
+<p align="center">
+  <img src="https://img.shields.io/badge/ESP32--S3-Seeed%20XIAO-e7352c?style=flat-square&logo=espressif&logoColor=white" alt="ESP32-S3 Seeed XIAO">
+  <img src="https://img.shields.io/badge/MPU--9250-9--DOF-6e7781?style=flat-square" alt="MPU-9250 9-DOF">
+  <img src="https://img.shields.io/badge/PlatformIO-build-f5822a?style=flat-square&logo=platformio&logoColor=white" alt="PlatformIO">
+  <img src="https://img.shields.io/badge/C%2B%2B-firmware-00599c?style=flat-square&logo=cplusplus&logoColor=white" alt="C++">
+  <img src="https://img.shields.io/badge/Three.js-r128-000000?style=flat-square&logo=threedotjs&logoColor=white" alt="Three.js r128">
+  <img src="https://img.shields.io/badge/WebSocket-async-6e7781?style=flat-square" alt="WebSocket">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/jacedeno/mpu9250-imu-3d-visualization?style=flat-square" alt="License"></a>
+  <img src="https://img.shields.io/github/last-commit/jacedeno/mpu9250-imu-3d-visualization?style=flat-square" alt="Last commit">
+</p>
 
 ## Overview
+
+A high-performance IIoT visualization project utilizing the **Seeed Studio XIAO ESP32-S3** and the **MPU-9250** (9-DOF) sensor. This system provides real-time 3D orientation tracking (NASA Shuttle) in a web browser via WebSockets and Three.js.
 
 - **Real-time Sensor Fusion:** Implements a custom Madgwick filter to convert raw IMU data into stable quaternions.
 - **Low-Latency Communication:** Uses asynchronous WebSockets to stream orientation data at 60 Hz.
@@ -10,73 +29,7 @@ A high-performance IIoT visualization project utilizing the **Seeed Studio XIAO 
 - **Decoupled Frontend:** A Three.js-based dashboard hosted on LittleFS and served directly from the ESP32.
 - **Autonomous Power:** Integrated LiPo battery management for a completely wireless 3D-printed model.
 
-## Technical Stack
-
-- **Hardware:** Seeed Studio XIAO ESP32-S3 (Dual-core, Wi-Fi/BT, LiPo charging).
-- **Sensor:** InvenSense MPU-9250 (I2C @ 400 kHz).
-- **Environment:** PlatformIO / VS Code.
-- **Firmware:** C++ with `ESPAsyncWebServer` and `Bolder Flight Systems MPU9250`.
-- **Frontend:** HTML5, CSS3, JavaScript (Three.js r128), WebSockets.
-
-## Dependencies
-
-| Library | Version | Source | Notes |
-|---|---|---|---|
-| Bolder Flight Systems MPU9250 | 1.0.2 | [PlatformIO Registry](https://registry.platformio.org/libraries/bolderflight/Bolder%20Flight%20Systems%20MPU9250) | See [Known Incompatibilities](#known-incompatibilities) |
-| ESPAsyncWebServer (lacamera fork) | 3.1.0 | [GitHub](https://github.com/lacamera/ESPAsyncWebServer) | ESPHome-maintained fork, includes AsyncTCP-esphome 2.1.4 |
-| ArduinoJson | ^7.0.0 (resolves 7.4.x) | [PlatformIO Registry](https://registry.platformio.org/libraries/bblanchon/ArduinoJson) | |
-
-### Known Incompatibilities
-
-**Bolder Flight Systems MPU9250 v5.x (v5.3.0 - v5.6.0) is NOT compatible with Arduino/PlatformIO on ESP32.** The v5.x line was rewritten for Bolder Flight's own build system and introduces the following breaking issues:
-
-1. **Eigen dependency conflict:** The v5.x library depends on `Bolder Flight Systems Eigen` which defines a variable `B1` in `BDCSVD.h`. This collides with Arduino's `binary.h` macro `#define B1 1`, causing compilation errors.
-2. **Undeclared transitive dependencies:** The v5.x `mpu9250.cpp` requires `units.h` (another Bolder Flight library) which is not declared in `library.properties`, so PlatformIO cannot resolve it automatically.
-3. **Namespace change:** v5.x uses `bfs::Mpu9250` with a completely different API (`Begin()`, `Read()`, `ConfigAccelRange()`) compared to v1.x (`begin()`, `readSensor()`, `setAccelRange()`).
-
-The v1.0.2 API is stable, lightweight (no Eigen), and fully compatible with ESP32 Arduino framework.
-
-**ESPAsyncWebServer (me-no-dev original) is abandoned.** The original `me-no-dev/ESPAsyncWebServer@1.2.4` and `me-no-dev/AsyncTCP@1.1.1` are no longer maintained. We use the [lacamera/ESPAsyncWebServer](https://github.com/lacamera/ESPAsyncWebServer) fork (maintained by the ESPHome team), which bundles `AsyncTCP-esphome` as a dependency automatically.
-
-## Hardware Wiring (I2C)
-
-| XIAO ESP32-S3 | MPU-9250 Pin | Description |
-|---|---|---|
-| **3.3V** | VCC | Power Supply |
-| **GND** | GND | Common Ground |
-| **D4 (GPIO 4)** | SDA | I2C Serial Data |
-| **D5 (GPIO 5)** | SCL | I2C Serial Clock |
-| **B+ (Pad)** | LiPo Red (+) | Battery Positive |
-| **B- (Pad)** | LiPo Black (-) | Battery Negative |
-
-## Project Constants
-
-| Constant | Value |
-|---|---|
-| Board | `seeed_xiao_esp32s3` |
-| SDA / SCL | GPIO 4 / GPIO 5 |
-| I2C Frequency | 400 kHz |
-| MPU-9250 Address | 0x68 |
-| WiFi Mode | AP — SSID `NASA-Shuttle-IMU`, pass `12345678` |
-| AP IP | 192.168.4.1 |
-| WebSocket Endpoint | `ws://192.168.4.1/ws` |
-| Sensor Loop | 200 Hz (Core 1) |
-| WS Push Rate | 60 Hz (Core 0) |
-| Madgwick Beta | 0.1 |
-| Filesystem | LittleFS |
-
-## Project Structure
-
-```
-platformio.ini          # Board config, LittleFS, dependencies
-src/main.cpp            # WiFi AP, dual-core tasks, WebSocket server
-src/sensor_fusion.h     # Custom Madgwick filter (header-only, 6-DOF)
-data/index.html         # Dashboard HTML shell
-data/app.js             # Three.js scene, WS client, rolling charts
-data/style.css          # Dark theme styling
-```
-
-## System Architecture
+## Architecture
 
 ```mermaid
 graph TD
@@ -119,7 +72,56 @@ graph TD
     end
 ```
 
-## Build & Upload
+## Tech stack
+
+- **Hardware:** Seeed Studio XIAO ESP32-S3 (Dual-core, Wi-Fi/BT, LiPo charging).
+- **Sensor:** InvenSense MPU-9250 (I2C @ 400 kHz).
+- **Environment:** PlatformIO / VS Code.
+- **Firmware:** C++ with `ESPAsyncWebServer` and `Bolder Flight Systems MPU9250`.
+- **Frontend:** HTML5, CSS3, JavaScript (Three.js r128), WebSockets.
+
+<details>
+<summary><b>Dependencies</b></summary>
+
+| Library | Version | Source | Notes |
+|---|---|---|---|
+| Bolder Flight Systems MPU9250 | 1.0.2 | [PlatformIO Registry](https://registry.platformio.org/libraries/bolderflight/Bolder%20Flight%20Systems%20MPU9250) | See [Known Incompatibilities](#known-incompatibilities) |
+| ESPAsyncWebServer (lacamera fork) | 3.1.0 | [GitHub](https://github.com/lacamera/ESPAsyncWebServer) | ESPHome-maintained fork, includes AsyncTCP-esphome 2.1.4 |
+| ArduinoJson | ^7.0.0 (resolves 7.4.x) | [PlatformIO Registry](https://registry.platformio.org/libraries/bblanchon/ArduinoJson) | |
+
+</details>
+
+### Known Incompatibilities
+
+<details>
+<summary><b>Bolder Flight Systems MPU9250 v5.x and the original ESPAsyncWebServer</b></summary>
+
+**Bolder Flight Systems MPU9250 v5.x (v5.3.0 - v5.6.0) is NOT compatible with Arduino/PlatformIO on ESP32.** The v5.x line was rewritten for Bolder Flight's own build system and introduces the following breaking issues:
+
+1. **Eigen dependency conflict:** The v5.x library depends on `Bolder Flight Systems Eigen` which defines a variable `B1` in `BDCSVD.h`. This collides with Arduino's `binary.h` macro `#define B1 1`, causing compilation errors.
+2. **Undeclared transitive dependencies:** The v5.x `mpu9250.cpp` requires `units.h` (another Bolder Flight library) which is not declared in `library.properties`, so PlatformIO cannot resolve it automatically.
+3. **Namespace change:** v5.x uses `bfs::Mpu9250` with a completely different API (`Begin()`, `Read()`, `ConfigAccelRange()`) compared to v1.x (`begin()`, `readSensor()`, `setAccelRange()`).
+
+The v1.0.2 API is stable, lightweight (no Eigen), and fully compatible with ESP32 Arduino framework.
+
+**ESPAsyncWebServer (me-no-dev original) is abandoned.** The original `me-no-dev/ESPAsyncWebServer@1.2.4` and `me-no-dev/AsyncTCP@1.1.1` are no longer maintained. We use the [lacamera/ESPAsyncWebServer](https://github.com/lacamera/ESPAsyncWebServer) fork (maintained by the ESPHome team), which bundles `AsyncTCP-esphome` as a dependency automatically.
+
+</details>
+
+## Getting started
+
+### Hardware Wiring (I2C)
+
+| XIAO ESP32-S3 | MPU-9250 Pin | Description |
+|---|---|---|
+| **3.3V** | VCC | Power Supply |
+| **GND** | GND | Common Ground |
+| **D4 (GPIO 4)** | SDA | I2C Serial Data |
+| **D5 (GPIO 5)** | SCL | I2C Serial Clock |
+| **B+ (Pad)** | LiPo Red (+) | Battery Positive |
+| **B- (Pad)** | LiPo Black (-) | Battery Negative |
+
+### Build & Upload
 
 ```bash
 # Add PlatformIO to PATH (add to ~/.zshrc for permanence)
@@ -135,14 +137,32 @@ pio run -t upload && pio run -t uploadfs
 pio device monitor
 ```
 
-## Usage
+### Usage
 
 1. Power up the ESP32-S3 with the MPU-9250 connected
 2. Connect to WiFi network `NASA-Shuttle-IMU` (password: `12345678`)
 3. Open `http://192.168.4.1` in a browser
 4. The 3D shuttle model rotates in real-time matching the physical sensor orientation
 
-## Performance Budget
+## Reference
+
+### Project Constants
+
+| Constant | Value |
+|---|---|
+| Board | `seeed_xiao_esp32s3` |
+| SDA / SCL | GPIO 4 / GPIO 5 |
+| I2C Frequency | 400 kHz |
+| MPU-9250 Address | 0x68 |
+| WiFi Mode | AP — SSID `NASA-Shuttle-IMU`, pass `12345678` |
+| AP IP | 192.168.4.1 |
+| WebSocket Endpoint | `ws://192.168.4.1/ws` |
+| Sensor Loop | 200 Hz (Core 1) |
+| WS Push Rate | 60 Hz (Core 0) |
+| Madgwick Beta | 0.1 |
+| Filesystem | LittleFS |
+
+### Performance Budget
 
 | Resource | Usage |
 |---|---|
@@ -152,3 +172,29 @@ pio device monitor
 | WebSocket bandwidth | ~7.2 KB/s (120 bytes x 60 Hz) |
 | Core 1 CPU | ~5% (sensor + Madgwick @ 200 Hz) |
 | Core 0 CPU | ~15-20% (WiFi + JSON + WS) |
+
+<details>
+<summary><b>Project Structure</b></summary>
+
+```
+platformio.ini          # Board config, LittleFS, dependencies
+src/main.cpp            # WiFi AP, dual-core tasks, WebSocket server
+src/sensor_fusion.h     # Custom Madgwick filter (header-only, 6-DOF)
+data/index.html         # Dashboard HTML shell
+data/app.js             # Three.js scene, WS client, rolling charts
+data/style.css          # Dark theme styling
+```
+
+</details>
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+<p align="center">
+  Built by <b>Jose Cedeno</b> ·
+  <a href="https://geekendzone.com">geekendzone.com</a> ·
+  <a href="https://www.linkedin.com/in/joseangelcedeno/">LinkedIn</a>
+</p>
